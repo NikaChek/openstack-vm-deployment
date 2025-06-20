@@ -8,9 +8,3 @@ terraform.tfvars
 # Cloud-init secrets 
 *.pem
 *.key
-
-# Python/Ansible/Editor junk 
-*.retry
-.vault_pass
-*.swp
-
