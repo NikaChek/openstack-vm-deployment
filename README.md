@@ -82,7 +82,7 @@ Terraform will create:
 
 ```bash
 cd ../ansible
-ansible-playbook playbook.yml
+ansible-playbook playbook.yml --private-key=<KEY_FILE>
 ```
 
 The playbook sets up iptables rules to enable port forwarding from the external IP to the internal IPs of VM-2 and VM-3.
