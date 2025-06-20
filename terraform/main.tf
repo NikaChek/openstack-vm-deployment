@@ -35,7 +35,7 @@ data "openstack_images_image_v2" "ubuntu_22_04" {
 resource "openstack_compute_instance_v2" "vm_1" {
   name            = "vm-1"
   flavor_name     = "c1.micro"
-  key_pair        = "atomlab_vm"
+  key_pair        = var.keypair_name
   security_groups = ["ssh", "default", "icmp", "http", "https"]
 
   block_device {
@@ -68,7 +68,7 @@ resource "openstack_compute_floatingip_associate_v2" "fip_1" {
 resource "openstack_compute_instance_v2" "vm_2" {
   name            = "vm-2"
   flavor_name     = "c1.micro"
-  key_pair        = "atomlab_vm"
+  key_pair        = var.keypair_name
   security_groups = ["default", "ssh", "icmp",  "http", "https"]
 
   block_device {
@@ -94,7 +94,7 @@ resource "openstack_compute_instance_v2" "vm_2" {
 resource "openstack_compute_instance_v2" "vm_3" {
   name            = "vm-3"
   flavor_name     = "c1.micro"
-  key_pair        = "atomlab_vm"
+  key_pair        = var.keypair_name
   security_groups = ["default", "ssh", "icmp",  "http", "https"]
 
   block_device {
