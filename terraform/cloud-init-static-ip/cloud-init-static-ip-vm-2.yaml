@@ -1,0 +1,25 @@
+#cloud-config
+
+write_files:
+  - path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    content: |
+      network: {config: disabled}
+    permissions: '0644'
+
+  - path: /etc/netplan/60-netcfg.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          ens3:
+            dhcp4: false
+            addresses:
+              - 192.168.100.102/24
+            gateway4: 192.168.100.1
+            nameservers:
+              addresses:
+                - 77.88.8.8
+                - 8.8.8.8
+                - 1.1.1.1
+    permissions: '0644'
+    owner: root:root

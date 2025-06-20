@@ -1,0 +1,2 @@
+[vm]
+<EXTERNAL_IP> ansible_user=ubuntu

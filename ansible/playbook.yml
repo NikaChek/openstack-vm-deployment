@@ -1,0 +1,58 @@
+---
+- name: Iptables set up
+  hosts: vm
+
+  tasks:
+  - name: Enable IP forwarding
+    ansible.posix.sysctl:
+      name: net.ipv4.ip_forward
+      value: '1'
+      sysctl_set: true
+    become: yes
+
+  - name: Redirect port 2201 to vm-1 port 22
+    ansible.builtin.iptables:
+      table: nat
+      chain: PREROUTING
+      in_interface: ens3
+      protocol: tcp
+      match: tcp
+      destination_port: 2201
+      jump: REDIRECT
+      to_ports: 22
+      comment: redirect
+    become: yes
+
+  - name: Redirect port 2202 to vm-2 port 22
+    ansible.builtin.iptables:
+      table: nat
+      chain: PREROUTING
+      in_interface: ens3
+      protocol: tcp
+      match: tcp
+      destination_port: 2202
+      jump: DNAT
+      to_destination: 192.168.100.102:22
+      comment: redirect
+    become: yes
+
+  - name: Redirect port 2203 to vm-3 port 22
+    ansible.builtin.iptables:
+      table: nat
+      chain: PREROUTING
+      in_interface: ens3
+      protocol: tcp
+      match: tcp
+      destination_port: 2203
+      jump: DNAT
+      to_destination: 192.168.100.103:22
+      comment: redirect
+    become: yes
+
+  - name: Masquerade internal traffic
+    ansible.builtin.iptables:
+      table: nat
+      chain: POSTROUTING
+      destination: 192.168.100.0/24
+      jump: MASQUERADE
+    become: yes
