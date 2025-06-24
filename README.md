@@ -1,13 +1,24 @@
-# OpenStack VM Deployment with Terraform and Ansible
+# OpenStack VM deployment with Terraform, Ansible, and Kubernetes monitoring 
 
 ## Objective
 
-Create a virtual infrastructure in OpenStack using Terraform:
+Create a virtual infrastructure in OpenStack using Terraform and Ansible, then configure a Kubernetes cluster with monitoring.
 
-- 3 Ubuntu 22.04 virtual machines
-- Shared internal network
-- One external (floating) IP
-- Port forwarding to access each VM via SSH
+### Insfrastructure goals
+
+* 3 Ubuntu 22.04 virtual machines
+* Shared internal network
+* One external (floating) IP
+* Port forwarding to access each VM via SSH
+
+### Kubernetes and monitoring goals
+
+* Install Kubernetes cluster (kubeadm)
+  * VM-1 — control-plane
+  * VM-2 and VM-3 — worker nodes
+* Deploy Prometheus and Grafana
+* Set up ingress (nginx)
+* Provide HTTPS access to Prometheus and Grafana interfaces
 
 ---
 
@@ -29,9 +40,12 @@ openstack-vm-deployment/
 │   ├── ansible.cfg
 │   ├── inventory
 │   └── playbook.yml
+├── scripts/
+│   ├── k8s_base.sh
+│   └── k8s_master.sh
 └── .gitignore
 
-````
+```
 
 ---
 
@@ -103,3 +117,128 @@ ssh -i <KEY_FILE> -p 2203 ubuntu@<EXTERNAL_IP>  # VM-3
 
 ---
 
+## Kubernetes cluster setup
+
+1. Launch Kubernetes
+
+On all VMs run the script `scripts/k8s_base.sh`:
+
+```bash
+sudo bash ./scripts/k8s_base.sh
+```
+
+On VM-1 (master node) run `scripts/k8s_master.sh`:
+
+```bash
+sudo bash ./scripts/k8s_master.sh
+```
+
+On VM-1, generate the join command:
+
+```bash
+kubeadm token create --print-join-command
+```
+
+Copy the output and run it on VM-2 and VM-3 (worker nodes).
+
+Verify that all nodes have joined the cluster (from VM-1):
+
+```bash
+kubectl get nodes
+```
+
+---
+
+### Monitoring setup
+
+2. Install Helm
+
+On VM-1, install Helm:
+
+```bash
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+```
+
+2. Add Helm repositories
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+```
+
+3. Install ingress-nginx controller
+
+```bash
+helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx --create-namespace
+```
+
+Verify that the ingress controller is running:
+
+```bash
+kubectl get pods -n ingress-nginx
+kubectl get svc -n ingress-nginx
+```
+
+4. Generate self-signed TLS certificate
+
+On VM-1, create a self-signed certificate for local domains:
+
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout tls.key -out tls.crt \
+  -subj "/CN=grafana.local" \
+  -addext "subjectAltName=DNS:grafana.local,DNS:prometheus.local"
+```
+
+5. Create Kubernetes TLS secret
+
+```bash
+kubectl create secret tls monitoring \
+  --cert=tls.crt --key=tls.key \
+  -n kube-prometheus-stack
+```
+
+6. Install Prometheus and Grafana
+
+Create a file monitoring-values.yaml with ingress and TLS configuration like `/scripts/ingress.yaml`.
+
+Install the monitoring stack:
+
+```bash
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+  -f monitoring-values.yaml \
+  --namespace kube-prometheus-stack --create-namespace
+```
+
+Verify deployment:
+
+```bash
+kubectl get pods -n kube-prometheus-stack
+```
+
+7. Configure local DNS and access the dashboards
+
+On local machine add entries to `/etc/hosts`:
+
+```bash
+<EXTERNAL_IP> grafana.local prometheus.local
+```
+
+Now you can access:
+* https://grafana.local
+* https://prometheus.local
+
+8. Default credentials for Grafana:
+
+* Login: admin
+* Password: 
+
+  ```bash
+  kubectl get secret --namespace kube-prometheus-stack kibe-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+  ```
+
+## Conclusion
+
+As a result, we have a Kubernetes cluster running on three Ubuntu VMs in OpenStack, with VM-1 as the control plane and VM-2, VM-3 as worker nodes. Prometheus and Grafana are deployed for monitoring, exposed via Ingress-NGINX with HTTPS access using a self-signed TLS certificate.
