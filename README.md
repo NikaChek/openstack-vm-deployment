@@ -51,18 +51,18 @@ openstack-vm-deployment/
 
 ## Setup
 
-1. Upload SSH keypair to the OpenStack project.
+### 1. Upload SSH keypair to the OpenStack project.
 
-2. Copy and edit the `terraform.tfvars.example` file:
+### 2. Copy and edit the `terraform.tfvars.example` file:
 
 ```hcl
 external_network_id = "your_external_network_id"
 keypair_name        = "your_keypair_name"
 ````
 
-3. Make sure private key file is available locally.
+### 3. Make sure private key file is available locally.
    
-4. In the Ansible `inventory` file, define VM-1:
+### 4. In the Ansible `inventory` file, define VM-1:
 
 ```ini
 [vm]
@@ -119,7 +119,7 @@ ssh -i <KEY_FILE> -p 2203 ubuntu@<EXTERNAL_IP>  # VM-3
 
 ## Kubernetes cluster setup
 
-1. Launch Kubernetes
+### 1. Launch Kubernetes
 
 On all VMs run the script `scripts/k8s_base.sh`:
 
@@ -149,9 +149,9 @@ kubectl get nodes
 
 ---
 
-### Monitoring setup
+## Monitoring setup
 
-2. Install Helm
+### 2. Install Helm
 
 On VM-1, install Helm:
 
@@ -159,7 +159,7 @@ On VM-1, install Helm:
 curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
-2. Add Helm repositories
+### 3. Add Helm repositories
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
@@ -167,7 +167,7 @@ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 ```
 
-3. Install ingress-nginx controller
+### 4. Install ingress-nginx controller
 
 ```bash
 helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx \
@@ -181,7 +181,7 @@ kubectl get pods -n ingress-nginx
 kubectl get svc -n ingress-nginx
 ```
 
-4. Generate self-signed TLS certificate
+### 5. Generate self-signed TLS certificate
 
 On VM-1, create a self-signed certificate for local domains:
 
@@ -192,7 +192,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -addext "subjectAltName=DNS:grafana.local,DNS:prometheus.local"
 ```
 
-5. Create Kubernetes TLS secret
+### 6. Create Kubernetes TLS secret
 
 ```bash
 kubectl create secret tls monitoring \
@@ -200,7 +200,7 @@ kubectl create secret tls monitoring \
   -n kube-prometheus-stack
 ```
 
-6. Install Prometheus and Grafana
+### 7. Install Prometheus and Grafana
 
 Create a file monitoring-values.yaml with ingress and TLS configuration like `/scripts/ingress.yaml`.
 
@@ -218,7 +218,7 @@ Verify deployment:
 kubectl get pods -n kube-prometheus-stack
 ```
 
-7. Configure local DNS and access the dashboards
+### 8. Configure local DNS and access the dashboards
 
 On local machine add entries to `/etc/hosts`:
 
@@ -230,7 +230,7 @@ Now you can access:
 * https://grafana.local
 * https://prometheus.local
 
-8. Default credentials for Grafana:
+### 9. Default credentials for Grafana:
 
 * Login: admin
 * Password: 
